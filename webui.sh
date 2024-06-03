@@ -26,21 +26,71 @@ if [ ! -f .env ]; then
 fi
 
 # Set the necessary environment variables
-export COMMANDLINE_ARGS="--allow-code --no-half-vae --api --port 1024 --lowvram --precision full --no-half --skip-torch-cuda-test --share --xformers"
+export COMMANDLINE_ARGS="--allow-code --no-half-vae --api --port 1024 --lowvram --precision full --no-half --skip-torch-cuda-test --share"
 export PUBLIC_URL=""
-export LITE_MODE=""
 
 # Function to start the web UI
 start_webui() {
   if [ -n "$PUBLIC_URL" ]; then
     COMMANDLINE_ARGS="$COMMANDLINE_ARGS --listen"
   fi
-  if [ -n "$LITE_MODE" ]; then
-    COMMANDLINE_ARGS="$COMMANDLINE_ARGS --no-half --no-progress-bar --skip-torch-cuda-test"
-  fi
-  python3 launch.py $COMMANDLINE_ARGS > webui.log 2>&1 &
-  echo $! > webui.pid
+  python3 launch.py $COMMANDLINE_ARGS
 }
+
+# Function to stop the web UI
+stop_webui() {
+  if [ -f webui.pid ]; then
+    kill $(cat webui.pid)
+    rm webui.pid
+  else
+    echo "Web UI is not running."
+  fi
+}
+
+# Function to restart the web UI
+restart_webui() {
+  stop_webui
+  start_webui
+}
+
+# Check and create necessary swap space if less than 4GB of RAM
+check_and_create_swap() {
+  if [ $(free -m | awk '/^Mem:/{print $2}') -lt 4000 ]; then
+    if ! sudo swapon --show | grep -q 'swapfile'; then
+      sudo fallocate -l 1G /swapfile
+      sudo chmod 600 /swapfile
+      sudo mkswap /swapfile
+      sudo swapon /swapfile
+      echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+    fi
+  fi
+}
+
+# Simplified options using OR functionality
+case "$1" in
+  start|START)
+    check_and_create_swap
+    start_webui
+    ;;
+  stop|STOP)
+    stop_webui
+    echo "Web UI stopped."
+    ;;
+  restart|RESTART)
+    check_and_create_swap
+    restart_webui
+    echo "Web UI restarted."
+    ;;
+  public|PUBLIC)
+    PUBLIC_URL="1"
+    check_and_create_swap
+    start_webui
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart|public}"
+    ;;
+esac
+
 
 # Function to start the web UI in hiding mode
 start_webui_hiding() {
@@ -90,7 +140,6 @@ check_and_create_swap() {
 # Simplified options using OR functionality
 case "$1" in
   start|START)
-    check_and_create_swap
     start_webui
     ;;
   stop|STOP)
@@ -104,12 +153,10 @@ case "$1" in
     ;;
   public|PUBLIC)
     PUBLIC_URL="1"
-    check_and_create_swap
     start_webui
     ;;
   lite|LITE)
     LITE_MODE="1"
-    check_and_create_swap
     start_webui
     ;;
   hiding|HIDING)

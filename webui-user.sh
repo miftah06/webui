@@ -90,7 +90,6 @@ check_and_create_swap() {
 # Simplified options using OR functionality
 case "$1" in
   start|START)
-    check_and_create_swap
     start_webui
     ;;
   stop|STOP)
@@ -104,12 +103,10 @@ case "$1" in
     ;;
   public|PUBLIC)
     PUBLIC_URL="1"
-    check_and_create_swap
     start_webui
     ;;
   lite|LITE)
     LITE_MODE="1"
-    check_and_create_swap
     start_webui
     ;;
   hiding|HIDING)
