@@ -42,6 +42,18 @@ start_webui() {
   echo $! > webui.pid
 }
 
+# Function to start the web UI in hiding mode
+start_webui_hiding() {
+  if [ -n "$PUBLIC_URL" ]; then
+    COMMANDLINE_ARGS="$COMMANDLINE_ARGS --listen"
+  fi
+  if [ -n "$LITE_MODE" ]; then
+    COMMANDLINE_ARGS="$COMMANDLINE_ARGS --no-half --no-progress-bar --skip-torch-cuda-test"
+  fi
+  nohup python3.8 launch.py $COMMANDLINE_ARGS > webui.log 2>&1 &
+  echo $! > webui.pid
+}
+
 # Function to stop the web UI
 stop_webui() {
   if [ -f webui.pid ]; then
@@ -100,7 +112,11 @@ case "$1" in
     check_and_create_swap
     start_webui
     ;;
+  hiding|HIDING)
+    check_and_create_swap
+    start_webui_hiding
+    ;;
   *)
-    echo "Usage: $0 {start|stop|restart|public|lite}"
+    echo "Usage: $0 {start|stop|restart|public|lite|hiding}"
     ;;
 esac
