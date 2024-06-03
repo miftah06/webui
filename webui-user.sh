@@ -38,7 +38,7 @@ start_webui() {
   if [ -n "$LITE_MODE" ]; then
     COMMANDLINE_ARGS="$COMMANDLINE_ARGS --no-half --no-progress-bar --skip-torch-cuda-test"
   fi
-  nohup python3.8 launch.py $COMMANDLINE_ARGS > webui.log 2>&1 &
+  python3.8 launch.py $COMMANDLINE_ARGS > webui.log 2>&1 &
   echo $! > webui.pid
 }
 
