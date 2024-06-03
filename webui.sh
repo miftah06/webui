@@ -89,7 +89,7 @@ case "$1" in
     ;;
   hiding|HIDING)
     check_and_create_swap
-    nohup start_webui &
+    nohup bash -c "start_webui" &
     ;;
   *)
     echo "Usage: $0 {start|stop|restart|public|hiding}"
