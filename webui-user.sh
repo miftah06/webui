@@ -28,11 +28,15 @@ fi
 # Set the necessary environment variables
 export COMMANDLINE_ARGS="--allow-code --no-half-vae --api --port 1024 --lowvram --precision full --no-half --skip-torch-cuda-test --share --xformers"
 export PUBLIC_URL=""
+export LITE_MODE=""
 
 # Function to start the web UI
 start_webui() {
   if [ -n "$PUBLIC_URL" ]; then
     COMMANDLINE_ARGS="$COMMANDLINE_ARGS --listen"
+  fi
+  if [ -n "$LITE_MODE" ]; then
+    COMMANDLINE_ARGS="$COMMANDLINE_ARGS --no-half --no-progress-bar --skip-torch-cuda-test"
   fi
   nohup python3.8 launch.py $COMMANDLINE_ARGS > webui.log 2>&1 &
   echo $! > webui.pid
@@ -62,6 +66,10 @@ check_and_create_swap() {
       sudo chmod 600 /swapfile
       sudo mkswap /swapfile
       sudo swapon /swapfile
+      if [ $? -ne 0 ]; then
+        echo "Failed to enable swap. Please check your system settings."
+        exit 1
+      fi
       echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
     fi
   fi
@@ -87,11 +95,12 @@ case "$1" in
     check_and_create_swap
     start_webui
     ;;
-  hiding|HIDING)
+  lite|LITE)
+    LITE_MODE="1"
     check_and_create_swap
-    nohup start_webui &
+    start_webui
     ;;
   *)
-    echo "Usage: $0 {start|stop|restart|public|hiding}"
+    echo "Usage: $0 {start|stop|restart|public|lite}"
     ;;
 esac

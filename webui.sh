@@ -66,6 +66,10 @@ check_and_create_swap() {
       sudo chmod 600 /swapfile
       sudo mkswap /swapfile
       sudo swapon /swapfile
+      if [ $? -ne 0 ]; then
+        echo "Failed to enable swap. Please check your system settings."
+        exit 1
+      fi
       echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
     fi
   fi
