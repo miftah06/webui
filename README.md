@@ -47,6 +47,18 @@ Untuk memperbaiki ssl dan squid (lakukan pergantian domain terlebih dahulu)
 apt reinstall stunnel -y && apt reinstall stunnel4 -y && apt reinstall shadowsocks -y && apt reinstall stunnel4 -y && apt reinstall squid -y && apt reinstall shadowsocks-libev
 ```
 
+## Usage BOT
+Make sure the script has execute permissions:
+```bash
+chmod +x bot.sh
+```
+
+### Commands
+- **Setup:** Initialize the environment and install dependencies.
+  ```bash
+  bash bot.sh
+  ```
+
 ## Usage
 Make sure the script has execute permissions:
 ```bash
