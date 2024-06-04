@@ -250,9 +250,12 @@ def handle_commands(message):
     self = message.chat.id
     if user_manager.is_whitelisted(self, user_id):
         command = message.text.lstrip('/ ')
-        command = 'sudo bash ' + '/usr/bin/'+command 
+        command = 'sudo ' + command 
         
-        p = Popen(command, shell=True, stdout=PIPE, stderr=PIPE)
+        env = os.environ.copy()
+        env['TERM'] = 'xterm'  # Set the TERM environment variable
+        
+        p = Popen(command, shell=True, stdout=PIPE, stderr=PIPE, env=env)
         
         for line in iter(p.stdout.readline,b''):
           terminal_recorder.record(line.decode('utf-8').strip())
@@ -269,8 +272,38 @@ def handle_commands(message):
         
            
 @bot.message_handler(func=lambda message: True)
-def fallback_handler(message):
-    bot.reply_to(message, "Unrecognized command. Please use a valid command.")
+def handle_commands(message):
+    user_id = message.from_user.id
+    self = message.chat.id
+    if user_manager.is_blacklisted(self, user_id):
+        bot.reply_to(message, "You are blacklisted and cannot use this bot.")
+        return
+
+    self = message.chat.id
+    if user_manager.is_whitelisted(self, user_id):
+        command = message.text.lstrip('/ ')
+        command = 'sudo ' + command
+
+        env = os.environ.copy()
+        env['TERM'] = 'xterm'  # Set the TERM environment variable
+        env['LANG'] = 'en_US.UTF-8'  # Set the language to English
+        env['LC_ALL'] = 'en_US.UTF-8'  # Set the locale to English
+
+        p = Popen(command, shell=True, stdout=PIPE, stderr=PIPE, env=env)
+
+        output_file = open('output_command.txt', 'w')
+        for line in iter(p.stdout.readline, b''):
+            output_file.write(line.decode('utf-8').strip() + '\n')
+        output_file.close()
+
+        for line in iter(p.stderr.readline, b''):
+            output_file.write(line.decode('utf-8').strip() + '\n')
+        output_file.close()
+
+        bot.reply_to(message, "Command executed successfully. Output saved to output_command.txt")
+    else:
+        bot.reply_to(message, "You are not authorized to use this bot. Please register first.")
+        
 
 def run_system_command(command):
     try:
