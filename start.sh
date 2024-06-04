@@ -2,9 +2,9 @@
 
 # Define variables
 VENV_PATH="/root/webui/stable-diffusion-webui/venv/bin/activate"
-BOT_SCRIPT_DIR="/root/webui/my_telegram_bot"
+BOT_SCRIPT_DIR="/root/webui/"
 BOT_SCRIPT_PATH="$BOT_SCRIPT_DIR/bot.py"
-SYSTEMD_SERVICE_PATH="/etc/systemd/system/ssh.service"
+SYSTEMD_SERVICE_PATH="/etc/systemd/system/bot.service.service"
 
 # Create bot.sh script
 echo "Creating bot.sh script..."
@@ -36,7 +36,7 @@ Description=Telegram Bot Service
 After=network.target
 
 [Service]
-ExecStart=/root/bot.sh
+ExecStart=/root/webui/bot.sh
 WorkingDirectory=$BOT_SCRIPT_DIR
 StandardOutput=inherit
 StandardError=inherit
@@ -52,13 +52,13 @@ echo "Reloading systemd daemon..."
 systemctl daemon-reload
 
 # Enable and start the systemd service
-echo "Enabling and starting ssh.service..."
-systemctl enable ssh.service
-systemctl start ssh.service
+echo "Enabling and starting bot.service.service..."
+systemctl enable bot.service.service
+systemctl start bot.service.service
 
 # Check the status of the service
-echo "Checking the status of ssh.service..."
-systemctl status ssh.service
+echo "Checking the status of bot.service.service..."
+systemctl status bot.service.service
 
 python3.11 install torch torchvision
 bash webui.sh lite
