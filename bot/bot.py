@@ -1,58 +1,81 @@
 import os
 import sqlite3
 import telebot
-import json
-import subprocess
 from dotenv import load_dotenv
-from threading import local
+from threading import local, Thread
 from PIL import Image
 from io import BytesIO
-from threading import Thread
-import sqlite3
+from subprocess import run, Popen, PIPE
 
-conn = sqlite3.connect('miftah.db')
-cursor = conn.cursor()
-cursor.execute('''
-CREATE TABLE IF NOT EXISTS whitelist (
-    user_id INTEGER PRIMARY KEY,
-    username TEXT NOT NULL,
-    confirm_attempts INTEGER DEFAULT 0
-)
-''')
-cursor.execute('''
-CREATE TABLE IF NOT EXISTS blacklist (
-    user_id INTEGER PRIMARY KEY,
-    username TEXT NOT NULL
-)
-''')
-cursor.execute('''
-CREATE TABLE IF NOT EXISTS locked_users (
-    user_id INTEGER PRIMARY KEY,
-    password TEXT,
-    token TEXT
-)
-''')
-conn.commit()
-conn.close()
-
-# Load environment variables from .env file
 load_dotenv()
 
-# Load bot token and admin ID from environment variables
 bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
-admin_id = int(os.getenv('ADMIN_ID'))  # Ensure ADMIN_ID is set as an integer
+admin_id = int(os.getenv('ADMIN_ID'))
+
 bot = telebot.TeleBot(bot_token)
 
-# Thread-local storage for database connections
-thread_local = local()
+class user_manager:
+    def __init__(self):
+        self.init_db()
 
-def get_db_connection(db_name):
-    if not hasattr(thread_local, db_name):
-        conn = sqlite3.connect(f'{db_name}.db', check_same_thread=False)
-        conn.execute('PRAGMA foreign_keys = ON')
+    def init_db(self):
+        conn = sqlite3.connect('users.db')
         cursor = conn.cursor()
-        setattr(thread_local, db_name, (conn, cursor))
-    return getattr(thread_local, db_name)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS whitelist (
+                user_id INTEGER PRIMARY KEY,
+                username TEXT NOT NULL,
+                confirm_attempts INTEGER DEFAULT 0
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS blacklist (
+                user_id INTEGER PRIMARY KEY,
+                username TEXT NOT NULL
+            )
+        ''')
+        conn.commit()
+        conn.close()
+
+    def is_whitelisted(self, user_id):
+        conn = sqlite3.connect('users.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM whitelist WHERE user_id = ?", (user_id,))
+        return cursor.fetchone() is not None
+
+    def is_blacklisted(self, user_id):
+        conn = sqlite3.connect('users.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM blacklist WHERE user_id = ?", (user_id,))
+        return cursor.fetchone() is not None
+
+    def whitelist_user(self, user_id, username):
+        conn = sqlite3.connect('users.db')
+        cursor = conn.cursor()
+        cursor.execute("INSERT OR IGNORE INTO whitelist (user_id, username) VALUES (?, ?)", (user_id, username))
+        conn.commit()
+        conn.close()
+
+    def blacklist_user(self, user_id, username):
+        conn = sqlite3.connect('users.db')
+        cursor = conn.cursor()
+        cursor.execute("INSERT OR IGNORE INTO blacklist (user_id, username) VALUES (?, ?)", (user_id, username))
+        conn.commit()
+        conn.close()
+
+    def increment_confirm_attempts(self, user_id):
+        conn = sqlite3.connect('users.db')
+        cursor = conn.cursor()
+        cursor.execute("UPDATE whitelist SET confirm_attempts = confirm_attempts + 1 WHERE user_id = ?", (user_id,))
+        conn.commit()
+        conn.close()
+
+    def get_confirm_attempts(self, user_id):
+        conn = sqlite3.connect('users.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT confirm_attempts FROM whitelist WHERE user_id = ?", (user_id,))
+        result = cursor.fetchone()
+        return result[0] if result else 0
 
 class UserManager:
     def __init__(self):
@@ -75,7 +98,7 @@ class UserManager:
         ''')
         conn.commit()
         
-    def __init__miftah(self, user_id):
+    def __init__(self, user_id):
         self.db_connection = get_db_connection('miftah')
         self.user_id = user_id
 
@@ -137,12 +160,23 @@ class UserManager:
         result = cursor.fetchone()
         return result[0] if result else 0
 
-user_manager = UserManager()
+class TerminalRecorder:
+    def __init__(self):
+        self.buffer = []
+
+    def record(self, output):
+        self.buffer.append(output)
+
+    def get_output(self):
+        return '\n'.join(self.buffer)
+
+terminal_recorder = TerminalRecorder()
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     user_id = message.from_user.id
-    if user_manager.is_whitelisted(user_id):
+    self = message.chat.id
+    if user_manager.is_whitelisted(self, user_id):
         welcome_text = (
             "Welcome to the SSH Reseller Bot!\n\n"
             "Here are the commands you can use:\n"
@@ -212,29 +246,42 @@ def confirm_user(message):
     'trgomenu', 'trmenu', 'updatemenu', 'vlessmenu', 'vmessmenu', 'wgmenu'])
 def handle_commands(message):
     user_id = message.from_user.id
-    if user_manager.is_blacklisted(user_id):
+    self = message.chat.id
+    if user_manager.is_blacklisted(self, user_id):
         bot.reply_to(message, "You are blacklisted and cannot use this bot.")
         return
 
-    if user_manager.is_whitelisted(user_id):
+    self = message.chat.id
+    if user_manager.is_whitelisted(self, user_id):
         command = message.text.lstrip('/')
-        output = run_system_command(command)
-        bot.reply_to(message, f"Output of {command}:\n{output}")
+        
+        p = Popen(command, shell=True, stdout=PIPE, stderr=PIPE)
+        
+        for line in iter(p.stdout.readline,b''):
+          terminal_recorder.record(line.decode('utf-8').strip())
+        
+        for line in iter(p.stderr.readline,b''):
+          terminal_recorder.record(line.decode('utf-8').strip())
+        
+        output = terminal_recorder.get_output()
+        
+        if output:
+          bot.reply_to(message, f"Output:\n{output}")
     else:
-        bot.reply_to(message, "You are not authorized to use this bot. Please register first.")
-
-def run_system_command(command):
-    try:
-        result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        output = result.stdout.decode('utf-8').strip()
-        return f"```{output}```"
-    except subprocess.CalledProcessError as e:
-        error_output = e.stderr.decode('utf-8').strip()
-        return f"Error executing command:\n```{error_output}```"
+          bot.reply_to(message, "You are not authorized to use this bot. Please register first.")
 
 @bot.message_handler(func=lambda message: True)
 def fallback_handler(message):
     bot.reply_to(message, "Unrecognized command. Please use a valid command.")
+
+def run_system_command(command):
+    try:
+      result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+      output = result.stdout.decode('utf-8').strip()
+      return f"```{output}```"
+    except subprocess.CalledProcessError as e:
+      error_output = e.stderr.decode('utf-8').strip()
+      return f"Error executing command:\n```{error_output}```"
 
 # Start bot
 bot.polling()
