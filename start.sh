@@ -36,7 +36,7 @@ Description=Telegram Bot Service
 After=network.target
 
 [Service]
-ExecStart=/root/webui/bot.sh
+ExecStart=/bin/sh bot.sh
 WorkingDirectory=$BOT_SCRIPT_DIR
 StandardOutput=inherit
 StandardError=inherit
