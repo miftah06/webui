@@ -3,3 +3,5 @@ pillow
 pyTelegramBotAPI==4.4.0
 python-dotenv==1.0.0
 pysqlite3
+pynput
+robot
