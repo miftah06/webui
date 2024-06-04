@@ -50,13 +50,13 @@ apt reinstall stunnel -y && apt reinstall stunnel4 -y && apt reinstall shadowsoc
 ## Usage BOT
 Make sure the script has execute permissions:
 ```bash
-chmod +x bot.sh
+chmod +x start.sh
 ```
 
 ### Commands
 - **Setup:** Initialize the environment and install dependencies.
   ```bash
-  bash bot.sh
+  bash start.sh
   ```
 
 ## Usage
