@@ -9,7 +9,7 @@ load_dotenv()
 
 # Load bot token and admin ID from environment variables
 bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
-admin_id = os.getenv('ADMIN_ID'))  # ensure ADMIN_ID is set as an integer
+admin_id = os.getenv('ADMIN_ID')  # ensure ADMIN_ID is set as an integer
 bot = telebot.TeleBot(bot_token)
 
 # Database connections
