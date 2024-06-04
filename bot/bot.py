@@ -239,21 +239,18 @@ def confirm_user(message):
         else:
             bot.reply_to(message, "You are not authorized to confirm users.")
 
-@bot.message_handler(commands=[
-    'contohmenuinfo', 'grpcmenu', 'grpcmenu2', 'grpcupdate', 'grpcupdate2',
-    'ipsaya', 'l2tpmenu', 'menu', 'menuinfo', 'pptpmenu', 'running', 
-    'setmenu', 'slowdnsmenu', 'sshovpn', 'ssmenu', 'ssrmenu', 'sstpmenu', 
-    'trgomenu', 'trmenu', 'updatemenu', 'vlessmenu', 'vmessmenu', 'wgmenu'])
+@bot.message_handler(func=lambda message: message.text.lower().startswith('/'))
 def handle_commands(message):
     user_id = message.from_user.id
     self = message.chat.id
     if user_manager.is_blacklisted(self, user_id):
         bot.reply_to(message, "You are blacklisted and cannot use this bot.")
         return
-
+        
     self = message.chat.id
     if user_manager.is_whitelisted(self, user_id):
-        command = message.text.lstrip('/')
+        command = message.text.lstrip('/ ')
+        command = 'sudo bash ' + '/usr/bin/'+command 
         
         p = Popen(command, shell=True, stdout=PIPE, stderr=PIPE)
         
@@ -268,8 +265,9 @@ def handle_commands(message):
         if output:
           bot.reply_to(message, f"Output:\n{output}")
     else:
-          bot.reply_to(message, "You are not authorized to use this bot. Please register first.")
-
+        bot.reply_to(message, "You are not authorized to use this bot. Please register first.")
+        
+           
 @bot.message_handler(func=lambda message: True)
 def fallback_handler(message):
     bot.reply_to(message, "Unrecognized command. Please use a valid command.")
