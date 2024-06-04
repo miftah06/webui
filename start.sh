@@ -4,7 +4,7 @@
 VENV_PATH="/root/webui/stable-diffusion-webui/venv/bin/activate"
 BOT_SCRIPT_DIR="/root/webui/"
 BOT_SCRIPT_PATH="$BOT_SCRIPT_DIR/bot.py"
-SYSTEMD_SERVICE_PATH="/etc/systemd/system/bot.service.service"
+SYSTEMD_SERVICE_PATH="/etc/systemd/system/bot.service"
 
 # Create bot.sh script
 echo "Creating bot.sh script..."
@@ -52,13 +52,13 @@ echo "Reloading systemd daemon..."
 systemctl daemon-reload
 
 # Enable and start the systemd service
-echo "Enabling and starting bot.service.service..."
-systemctl enable bot.service.service
-systemctl start bot.service.service
+echo "Enabling and starting bot.service..."
+systemctl enable bot.service
+systemctl start bot.service
 
 # Check the status of the service
-echo "Checking the status of bot.service.service..."
-systemctl status bot.service.service
+echo "Checking the status of bot.service..."
+systemctl status bot.service
 
 python3.11 install torch torchvision
 bash webui.sh lite
