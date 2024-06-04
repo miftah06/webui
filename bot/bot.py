@@ -3,11 +3,9 @@ import sqlite3
 import telebot
 import json
 import subprocess
-import pyautogui
 from dotenv import load_dotenv
 from threading import local
 from time import sleep
-from PIL import Image
 
 # Load environment variables from .env file
 load_dotenv()
@@ -163,7 +161,6 @@ def handle_commands(message):
         command = message.text.lstrip('/')
         output = run_system_command(command)
         bot.reply_to(message, f"Output of {command}:\n{output}")
-        send_screenshot(message)
     else:
         bot.reply_to(message, "You are not authorized to use this bot. Please register first.")
 
@@ -173,16 +170,6 @@ def run_system_command(command):
         return result.stdout.decode('utf-8')
     except subprocess.CalledProcessError as e:
         return f"Error executing command:\n{e.stderr.decode('utf-8')}"
-
-def send_screenshot(message):
-    # Capture the screen
-    screenshot = pyautogui.screenshot()
-    screenshot_path = '/tmp/screenshot.png'
-    screenshot.save(screenshot_path)
-
-    # Send the screenshot
-    with open(screenshot_path, 'rb') as photo:
-        bot.send_photo(message.chat.id, photo)
 
 @bot.message_handler(func=lambda message: True)
 def fallback_handler(message):
