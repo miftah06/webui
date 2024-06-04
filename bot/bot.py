@@ -5,7 +5,35 @@ import json
 import subprocess
 from dotenv import load_dotenv
 from threading import local
-from time import sleep
+from PIL import Image
+from io import BytesIO
+from threading import Thread
+import sqlite3
+
+conn = sqlite3.connect('miftah.db')
+cursor = conn.cursor()
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS whitelist (
+    user_id INTEGER PRIMARY KEY,
+    username TEXT NOT NULL,
+    confirm_attempts INTEGER DEFAULT 0
+)
+''')
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS blacklist (
+    user_id INTEGER PRIMARY KEY,
+    username TEXT NOT NULL
+)
+''')
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS locked_users (
+    user_id INTEGER PRIMARY KEY,
+    password TEXT,
+    token TEXT
+)
+''')
+conn.commit()
+conn.close()
 
 # Load environment variables from .env file
 load_dotenv()
@@ -46,6 +74,37 @@ class UserManager:
         )
         ''')
         conn.commit()
+        
+    def __init__miftah(self, user_id):
+        self.db_connection = get_db_connection('miftah')
+        self.user_id = user_id
+
+    def is_locked(self):
+        cursor = self.db_connection[1]
+        cursor.execute("SELECT 1 FROM locked_users WHERE user_id = ?", (self.user_id,))
+        return cursor.fetchone() is not None
+
+    def lock_user(self, password, token):
+        cursor = self.db_connection[1]
+        cursor.execute("INSERT OR IGNORE INTO locked_users (user_id, password, token) VALUES (?, ?, ?)", (self.user_id, password, token))
+        self.db_connection[0].commit()
+
+    def unlock_user(self):
+        cursor = self.db_connection[1]
+        cursor.execute("DELETE FROM locked_users WHERE user_id = ?", (self.user_id,))
+        self.db_connection[0].commit()
+
+    def get_token(self):
+        cursor = self.db_connection[1]
+        cursor.execute("SELECT token FROM locked_users WHERE user_id = ?", (self.user_id,))
+        result = cursor.fetchone()
+        return result[0] if result else None
+
+    def get_password(self):
+        cursor = self.db_connection[1]
+        cursor.execute("SELECT password FROM locked_users WHERE user_id = ?", (self.user_id,))
+        result = cursor.fetchone()
+        return result[0] if result else None
 
     def is_whitelisted(self, user_id):
         conn, cursor = get_db_connection('users')
@@ -167,18 +226,15 @@ def handle_commands(message):
 def run_system_command(command):
     try:
         result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        return result.stdout.decode('utf-8')
+        output = result.stdout.decode('utf-8').strip()
+        return f"```{output}```"
     except subprocess.CalledProcessError as e:
-        return f"Error executing command:\n{e.stderr.decode('utf-8')}"
+        error_output = e.stderr.decode('utf-8').strip()
+        return f"Error executing command:\n```{error_output}```"
 
 @bot.message_handler(func=lambda message: True)
 def fallback_handler(message):
     bot.reply_to(message, "Unrecognized command. Please use a valid command.")
-
-# Error handling
-@bot.message_handler(func=lambda message: True, content_types=['text'])
-def handle_errors(message):
-    bot.reply_to(message, "Something went wrong. Please try again later.")
 
 # Start bot
 bot.polling()
