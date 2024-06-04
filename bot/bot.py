@@ -35,6 +35,39 @@ CREATE TABLE IF NOT EXISTS whitelist (
 conn.commit()
 
 # Command handlers
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    welcome_text = (
+        "Welcome to the SSH Reseller Bot!\n\n"
+        "Here are the commands you can use:\n"
+        "/contohmenuinfo - Description of contohmenuinfo\n"
+        "/grpcmenu - Description of grpcmenu\n"
+        "/grpcmenu2 - Description of grpcmenu2\n"
+        "/grpcupdate - Description of grpcupdate\n"
+        "/grpcupdate2 - Description of grpcupdate2\n"
+        "/ipsaya - Description of ipsaya\n"
+        "/l2tpmenu - Description of l2tpmenu\n"
+        "/menu - Description of menu\n"
+        "/menuinfo - Description of menuinfo\n"
+        "/pptpmenu - Description of pptpmenu\n"
+        "/running - Description of running\n"
+        "/setmenu - Description of setmenu\n"
+        "/slowdnsmenu - Description of slowdnsmenu\n"
+        "/sshovpn - Description of sshovpn\n"
+        "/ssmenu - Description of ssmenu\n"
+        "/ssrmenu - Description of ssrmenu\n"
+        "/sstpmenu - Description of sstpmenu\n"
+        "/trgomenu - Description of trgomenu\n"
+        "/trmenu - Description of trmenu\n"
+        "/updatemenu - Description of updatemenu\n"
+        "/vlessmenu - Description of vlessmenu\n"
+        "/vmessmenu - Description of vmessmenu\n"
+        "/wgmenu - Description of wgmenu\n"
+        "/register - Register for access\n"
+        "/confirm - Confirm a user (Admin only)\n"
+    )
+    bot.reply_to(message, welcome_text)
+
 @bot.message_handler(commands=['contohmenuinfo', 'grpcmenu', 'grpcmenu2', 'grpcupdate', 'grpcupdate2',
                                'ipsaya', 'l2tpmenu', 'menu', 'menuinfo', 'pptpmenu', 'running', 
                                'setmenu', 'slowdnsmenu', 'sshovpn', 'ssmenu', 'ssrmenu', 'sstpmenu', 
